@@ -85,6 +85,7 @@ function mousePressed() {
 		// console.log(grid.toText());
 		var result = grid.addToColumn(x, player);
 		if (result) {
+			counters.push(new Counter(result.x, result.y, player));
 			// console.log(grid.row(0));
 			var tmp = checkWin(grid);
 			winner = tmp.win;
@@ -201,6 +202,7 @@ function maxInRow(ar) {
 }
 
 findResults = function(gr, depth) {
+	console.log([depth, gr.toText()]);
 	var counts = []
 	var fitness = 0;
 	for (var j = 0; j < 2; j++) {
@@ -243,21 +245,22 @@ findResults = function(gr, depth) {
 			availMoves++;
 			var tempGrid = new CreateGrid(gr.grid, gr.player);
 			tempGrid.addToColumn(j);
-			var tempRes = res.push(findResults(tempGrid, depth - 1));
+			var tempRes = findResults(tempGrid, depth - 1);
+			console.log(tempRes)
 			if (bestFit < tempRes.fitness) {
 				bestFit = tempRes.fitness;
 				result.bestMove = j;
 			}
-			avgfit += tempRes.fitness;
+			avgFit += tempRes.fitness;
 		}
 	}
 	if (availMoves === 0) {
 		//end of game
 		//deal with this
 	} else {
-		result.fitness = avgfit / availMoves;
+		result.fitness = avgFit / availMoves;
 	}
-	return bestRes;
+	return result;
 }
 
 findNosInLine = function(gr, col) {

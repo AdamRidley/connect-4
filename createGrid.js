@@ -2,7 +2,7 @@ function CreateGrid(gr, player) {
 	this.player = player || 0;
 
 	if (gr) {
-		this.grid = gr.splice();
+		this.grid = gr.slice(); //needs to be nested slice only dups top level
 	} else {
 		this.grid = []
 		for (var i = 0; i < gridWidth; i++) {
@@ -13,7 +13,7 @@ function CreateGrid(gr, player) {
 		}
 	}
 	this.column = function(i) {
-		return this.grid[i].splice();
+		return this.grid[i].slice();
 	}
 
 	this.getColumnPos = function(i, st, len) {
@@ -117,7 +117,6 @@ function CreateGrid(gr, player) {
 		if (!(j === false)) {
 			if (j > -1) {
 				this.grid[i][j] = col;
-				counters.push(new Counter(i, j, col));
 				this.player = 1 - this.player;
 				// console.log('Added colour '+col+' at: '+i+', '+j);
 				//Check diagDL is working for all diagonals
@@ -126,7 +125,10 @@ function CreateGrid(gr, player) {
 				//   temp.push(this.diagDL(k));
 				// }
 				// console.log(temp);
-				return true;
+				return {
+					x: i,
+					y: j
+				};
 			} else {
 				return false;
 			}
@@ -134,12 +136,6 @@ function CreateGrid(gr, player) {
 	}
 
 	this.toText = function() {
-		var out
-		for (var i in grid) {
-			if (grid[i] instanceof Array) {
-				out = grid[i].join(", ");
-			}
-		}
-		return out;
+		return "[[" + grid.grid.join("],[") + "]]";
 	}
 }
