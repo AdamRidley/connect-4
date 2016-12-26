@@ -16,6 +16,9 @@ var winningCol;
 var winLoopCount = 0;
 var noDiags;
 var diagnums = [];
+var multiplayer = false;
+var myLog = [];
+var aiDepth = 5;
 
 function setup() {
 	noDiags = gridWidth + gridHeight - 7;
@@ -42,7 +45,7 @@ checkMousePos = function() {
 	// console.log(mouseX);
 	// console.log(mouseY);
 
-	if (mouseInGrid()) {
+	if (mouseInGrid() && (grid.player === 0 || (grid.player === 1 && multiplayer))) {
 		var x = int((mouseX - gridLeft) / unitWidth);
 		if (grid.columnNextSpace(x) > -1) {
 			selection.pos.x = x
@@ -80,35 +83,46 @@ recalcSizeVars = function() {
 
 function mousePressed() {
 
-	if (mouseInGrid() && !winner) {
+	if (mouseInGrid() && !winner && (grid.player === 0 || (grid.player === 1 && multiplayer))) {
 		var x = int((mouseX - gridLeft) / unitWidth);
 		// console.log(grid.toText());
-		var result = grid.addToColumn(x, player);
-		if (result) {
-			counters.push(new Counter(result.x, result.y, player));
-			// console.log(grid.row(0));
-			var tmp = checkWin(grid);
-			winner = tmp.win;
-			if (winner) {
-				var p = tmp.positions;
-				// console.log(p);
-				// console.log(p[i].x+' '+p[i].y);
-				for (j in counters) {
-					for (i = 0; i < p.length; i++) {
-						var c = counters[j];
-						if (c.pos.x === p[i].x && c.pos.y === p[i].y) {
-							c.winningCounter = true;
-							break;
-						}
-					}
-				}
-			} else {
-				player = grid.player;
-			}
+		var result = playMove(x);
+		if (result && (!winner) && (!multiplayer)) {
+			var aiResult = findResults(grid, aiDepth);
+			console.log(aiResult);
+			playMove(aiResult.bestMove);
 		}
 	}
 
 }
+
+playMove = function(x) {
+	var result = grid.addToColumn(x, grid.player);
+	if (result) {
+		counters.push(new Counter(result.x, result.y, player));
+		// console.log(grid.row(0));
+		var tmp = checkWin(grid);
+		winner = tmp.win;
+		if (winner) {
+			var p = tmp.positions;
+			// console.log(p);
+			// console.log(p[i].x+' '+p[i].y);
+			for (j in counters) {
+				for (i = 0; i < p.length; i++) {
+					var c = counters[j];
+					if (c.pos.x === p[i].x && c.pos.y === p[i].y) {
+						c.winningCounter = true;
+						break;
+					}
+				}
+			}
+		} else {
+			player = grid.player;
+		}
+	}
+	return result;
+}
+
 checkWin = function(gr) {
 	var foundWin = false;
 	var winningPos = [];
@@ -202,16 +216,16 @@ function maxInRow(ar) {
 }
 
 findResults = function(gr, depth) {
-	console.log([depth, gr.toText()]);
+	//myLog.push([depth, gr.toText()]);
 	var counts = []
 	var fitness = 0;
 	for (var j = 0; j < 2; j++) {
 		counts.push(findNosInLine(gr, j));
 	}
 	if (counts[0][2] > 0) {
-		fitness = 0
+		fitness = -10
 	} else if (counts[1][2] > 0) {
-		fitness = 1
+		fitness = 10
 	} else {
 		var dif;
 		for (var a = 1; a >= 0; a--) {
@@ -246,7 +260,7 @@ findResults = function(gr, depth) {
 			var tempGrid = new CreateGrid(gr.grid, gr.player);
 			tempGrid.addToColumn(j);
 			var tempRes = findResults(tempGrid, depth - 1);
-			console.log(tempRes)
+			//myLog.push(tempRes, depth);
 			if (bestFit < tempRes.fitness) {
 				bestFit = tempRes.fitness;
 				result.bestMove = j;
@@ -259,6 +273,7 @@ findResults = function(gr, depth) {
 		//deal with this
 	} else {
 		result.fitness = avgFit / availMoves;
+		//myLog.push(result.fitness);
 	}
 	return result;
 }

@@ -2,7 +2,12 @@ function CreateGrid(gr, player) {
 	this.player = player || 0;
 
 	if (gr) {
-		this.grid = gr.slice(); //needs to be nested slice only dups top level
+		//console.log(gr);
+		this.grid = [];
+		for (var i in gr) {
+			this.grid.push(gr[i].slice());
+		}
+		//console.log(this.grid); //needs to be nested slice only dups top level
 	} else {
 		this.grid = []
 		for (var i = 0; i < gridWidth; i++) {
@@ -136,6 +141,6 @@ function CreateGrid(gr, player) {
 	}
 
 	this.toText = function() {
-		return "[[" + grid.grid.join("],[") + "]]";
+		return "[[" + this.grid.join("],[") + "]]";
 	}
 }
