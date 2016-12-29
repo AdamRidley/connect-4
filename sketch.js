@@ -21,6 +21,7 @@ var myLog = [];
 var aiDepth = 3;
 var moveList = [];
 var logging = true;
+var pLog = false;
 
 function setup() {
     noDiags = gridWidth + gridHeight - 7;
@@ -90,7 +91,7 @@ function mousePressed() {
         var result = playMove(x);
         if (result && (!winner) && (!multiplayer)) {
             var aiResult = findResults(grid, aiDepth);
-            console.log(aiResult);
+            if (pLog) console.log(aiResult);
             playMove(aiResult.bestMove);
         }
     }
@@ -129,6 +130,7 @@ playMove = function(x) {
 moves = function() {
     return moveList.join(",");
 }
+
 printLog = function() {
     console.log("Writing File");
     saveJSON(myLog, 'data.json');
@@ -229,15 +231,16 @@ function maxInRow(ar) {
 
 findResults = function(gr, depth) {
     if (logging) myLog.push([depth, gr.toText()]);
+    if (pLog) console.log(depth, gr.toText());
     var counts = []
     var fitness = 0;
     for (var j = 0; j < 2; j++) {
         counts.push(findNosInLine(gr, j));
     }
     if (counts[0][2] > 0) {
-        fitness = -10
+        fitness = -10 * (depth + 1)
     } else if (counts[1][2] > 0) {
-        fitness = 10
+        fitness = 10 * (depth + 1)
     } else {
         var dif;
         for (var a = 1; a >= 0; a--) {
@@ -252,6 +255,7 @@ findResults = function(gr, depth) {
         fitness = dif;
     }
     if (depth === 0 || counts[0][2] > 0 || counts[1][2] > 0) {
+        if (pLog) console.log(gr.grid, counts);
         return {
             fitness: fitness,
             bestMove: 0
@@ -263,6 +267,7 @@ findResults = function(gr, depth) {
         fitness: 0,
         bestMove: 0
     };
+    var foundMove = false
     var avgFit = 0;
     var availMoves = 0;
     var bestFit = 0;
@@ -273,7 +278,9 @@ findResults = function(gr, depth) {
             tempGrid.addToColumn(j);
             var tempRes = findResults(tempGrid, depth - 1);
             if (logging) myLog.push(tempRes, depth);
-            if (bestFit < tempRes.fitness) {
+            if (pLog) console.log(tempRes, depth);
+            if (bestFit < tempRes.fitness || foundMove === false) {
+                foundMove = true;
                 bestFit = tempRes.fitness;
                 result.bestMove = j;
             }
@@ -282,8 +289,7 @@ findResults = function(gr, depth) {
     }
     if (availMoves === 0) {
         //end of game
-        //deal with this
-        if (logging) myLog.push("Reached 0 available moves, help!!!");
+        result.fitness = 1;
     } else {
         result.fitness = avgFit / availMoves;
         if (logging) myLog.push(result.fitness);
@@ -314,29 +320,26 @@ findNosInLine = function(gr, col) {
 }
 
 findNosInRow = function(ar, col) {
+    //modified to account for space to grow to atleast 4 in a row
     if (!(ar.constructor === Array)) return false;
-    var st = 0;
-    var curLen = 0;
     var lengths = [];
-    var streak = false;
-    for (var i = 0; i < ar.length; i++) {
-        if (ar[i] === col) {
-            curLen++;
-            if (streak === false) streak = true;
-        } else {
-            st = i + 1;
-            if (streak) {
-                lengths.push(curLen);
-                curLen = 0;
-                streak = false;
+    for (var i = 0; i < ar.length - 3; i++) {
+        var blocked = false;
+        var noCols = 0;
+        for (var j = 0; j < 4; j++) {
+            if (ar[i + j] === col) {
+                noCols++;
+            } else if (ar[i + j] === 1 - col) {
+                blocked = true;
+                break;
             }
         }
+        if (blocked === false && noCols >= 2) {
+            lengths.push(noCols);
+        }
     }
-    if (streak) {
-        lengths.push(curLen);
-    }
-    var nos = [] //nos:[0=no of 2s,1=no of 3s,2 = no of 4 or more]
-    for (var i = 0; i < 3; i++) nos.push(0);
+    var nos = [0, 0, 0]; //nos:[0=no of 2s,1=no of 3s,2 = no of 4 or more]
+    //for (var i = 0; i < 3; i++) nos.push(0);
     for (var i in lengths) {
         var num = lengths[i];
         if (num > 1) {
@@ -345,6 +348,17 @@ findNosInRow = function(ar, col) {
         }
     }
     return nos;
+}
+
+setGrid = function(gr) {
+    grid.grid = gr;
+    for (i = 0; i < 7; i++) {
+        for (j = 0; j < 6; j++) {
+            if (gr[i][j] !== -1) {
+                counters.push(new Counter(i, j, gr[i][j]));
+            }
+        }
+    }
 }
 
 function draw() {
